@@ -1,3 +1,2 @@
-**Created code that Utilizes Azure's Email Communication service**
-**implemented through the send email button on the main app**
+**Created code that Utilizes [Azure's Email Communication](https://learn.microsoft.com/en-us/azure/communication-services/concepts/email/email-overview "visit azure") service**
 
