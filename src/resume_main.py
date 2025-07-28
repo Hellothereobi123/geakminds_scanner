@@ -114,7 +114,7 @@ new_button = tab3.button("Make Query")
 table_name = tab3.text_input(label = "Enter a table name")
 uploaded_file = tab3.file_uploader("Choose a file")
 upload_csv = tab3.button("upload")
-rowopp = tab3.checkbox("Check if you want to see rows returned by the query", value=False)
+rowopp = tab3.checkbox("Check if you are looking for rows (leave blank if looking for numbers)", value=False)
 
 if "advice_list" not in st.session_state:
     st.session_state.advice_list = []
