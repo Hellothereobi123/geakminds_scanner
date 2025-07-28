@@ -10,7 +10,7 @@ from azure.core.credentials import AzureKeyCredential
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 from azure.search.documents import SearchClient
 from dotenv import load_dotenv
-from sqlagent.sqlagentMain import execute_query, generate_query
+from sqlagent.sqlagentMain import execute_query, generate_query, push_to_database
 from Supervisor.feedback_agent import provide_feedback
 #from completeness import evaluate_stats
 import pandas as pd
@@ -100,7 +100,7 @@ curr_description = "" #temporary string to store current description
 container_client = blob_service_client.get_container_client(container= container_name) 
 #print("\nDownloading blob to \n\t" + download_file_path)
 doc_client = DocumentAnalysisClient(endpoint=endpoint, credential=AzureKeyCredential(key))#client
-tab1, tab2 = st.tabs(["Analysis", "Description"])
+tab1, tab2, tab3 = st.tabs(["Analysis", "Description", "Natural Language Query"])
 uploaded_file = tab2.file_uploader("Upload a document", type=["pdf", "jpg", "png", "tiff"])
 upload = tab2.button("upload resume")
 txt = tab2.text_area(
@@ -109,6 +109,13 @@ txt = tab2.text_area(
 process_description = tab2.button("process")#button to process the description and turn it into keyword string.
 newmark = tab2.markdown("")
 reload = tab1.button("reload") #button to load the resume analysis
+st.session_state.query_text = tab3.text_area(label="Enter a query")
+new_button = tab3.button("Make Query")
+table_name = tab3.text_input(label = "Enter a table name")
+uploaded_file = tab3.file_uploader("Choose a file")
+upload_csv = tab3.button("upload")
+rowopp = tab3.checkbox("Check if you want to see rows returned by the query", value=False)
+
 if "advice_list" not in st.session_state:
     st.session_state.advice_list = []
 if "text_list" not in st.session_state:
@@ -131,9 +138,22 @@ if "query_text" not in st.session_state:
     st.session_state.query_text = ""
 if "final_text" not in st.session_state:
     st.session_state.query_text = ""
+if "database_name" not in st.session_state:
+    st.session_state.database_name = ""
+st.session_state.database_name = table_name
 keywords = ""#'(skills:("python"^4 OR "numpy" OR "scipy" OR "pandas" OR "dask" OR "spacy" OR "nltk" OR "scikit-learn" OR "pytorch" OR "django" OR "flask" OR "pyramid" OR "sql" OR "nosql") AND experience:("machine learning"^3 OR "data pipelines" OR "code reviews" OR "cloud platforms" OR "aws" OR "azure" OR "google cloud" OR "open-source")) AND education:("computer science" OR "software engineering") AND softskills:("collaboration" OR "problem-solving" OR "communication")'
 if 'keywords' not in st.session_state:
     st.session_state.keywords = ""
+if new_button:
+    st.session_state.final_text = generate_query("", st.session_state.query_text).replace("```", "").replace("sql", "")
+    returned_data = execute_query(st.session_state.final_text, rowopp)
+    if(not hasattr(returned_data, '__iter__')):
+        tab3.markdown("Query executed successfully, returned "+str(returned_data))
+    else:
+        tab3.dataframe(returned_data)
+    print(st.session_state.final_text)
+    tab3.header("Provided Query:")
+    tab3.markdown(st.session_state.final_text)
 
 def render_ui():
     header_cols = tab1.columns([2, 2, 2, 4])  # Adjust widths as needed
@@ -199,15 +219,12 @@ def render_ui():
         )
         cols[3].markdown(advice_text)#markdown(str(result["@search.score"])+" - "+str(result["id"])+" - "+file_names[int(result["id"])])
         st.session_state.data_rendered = True
-    st.session_state.query_text = st.text_area(label="Enter a query")
-    new_button = st.button("Make Query")
-    if new_button:
-        st.session_state.final_text = execute_query(generate_query("", st.session_state.query_text))
-        print(st.session_state.final_text)
-        st.markdown(st.session_state.final_text)
 if st.session_state.data_rendered:
     print("true")
     render_ui()
+if upload_csv:
+    if uploaded_file is not None:
+        push_to_database(uploaded_file, st.session_state.database_name)
 if process_description:
     if txt != "":
         st.session_state.curr_description = txt

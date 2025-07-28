@@ -5,11 +5,12 @@ from langgraph.prebuilt import create_react_agent, InjectedState
 from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.types import Command
 from langchain_openai import ChatOpenAI
+import pandas as pd
 import pymysql
 import os
 
 # We'll use `pretty_print_messages` helper to render the streamed agent outputs nicely
-def execute_query(query: str):
+def execute_query(query: str, rowopp):
     try: #credentials for aurora mysql database access are generated using AWS cli using aws get-sts get-credentials
         connection = pymysql.connect(
         host=os.environ['AURORA_HOST'], #aurora database host name
@@ -20,21 +21,85 @@ def execute_query(query: str):
         )
         if("SELECT" in query):
             with connection:
-                with connection.cursor() as cursor:
-                    # Read a single record
-                    sql = query
-                    cursor.execute(sql)
-                    result = cursor.fetchall()
-                    return result
+                if rowopp:
+                    with connection.cursor() as cursor:
+                        # Read a single record
+                        sql = query
+                        cursor.execute(sql)
+                        result = cursor.fetchall()
+                        #print(cursor.description)
+                        col_names = []
+                        for i in range(len(cursor.description)):
+                            col_names.append(cursor.description[i][0])
+                        
+                        new_df = pd.DataFrame(result)
+                        new_df.columns = col_names
+                        df = new_df#[1:].reset_index(drop=True)
+                        #print(df)
+                        return df
+                else:
+                    with connection.cursor() as cursor:
+                        # Read a single record
+                        sql = query
+                        cursor.execute(sql)
+                        result = cursor.fetchone()
+                        return result[0] if result else 0
         else:
             with connection:
                 with connection.cursor() as cursor:
                     # Create a new record
                     sql = query
-                    cursor.execute(sql) 
-                    return "inserted"   
+                    cursor.execute(sql)    
+                connection.commit()
+                return ["inserted"]
     except Exception as e:
         print(e)
+def push_to_database(path, table_name):
+    db_config = {
+    'host': os.environ['AURORA_HOST'],
+    'port': 3306,
+    'user': os.environ['AURORA_USER'],
+    'password': os.environ['AURORA_PASSWORD'],
+    'database': os.environ['AURORA_DB']
+    }
+    df = pd.read_csv(path)
+    column_defs = ",".join(
+        f"`{col}` {infer_mysql_type(dtype)}"
+        for col, dtype in zip(df.columns, df.dtypes)
+    )
+
+    create_table_sql = f"CREATE TABLE IF NOT EXISTS `{table_name}` ({column_defs});"
+
+    # === Step 4: Connect to Aurora MySQL ===
+    conn = pymysql.connect(**db_config, autocommit=True)
+    cursor = conn.cursor()
+
+    # === Step 5: Create Table ===
+    cursor.execute(create_table_sql)
+    print(f"Created table `{table_name}`.")
+
+    # === Step 6: Insert Data ===
+    cols = ','.join(f'`{col}`' for col in df.columns)
+    placeholders = ','.join(['%s'] * len(df.columns))
+    insert_sql = f"INSERT INTO `{table_name}` ({cols}) VALUES ({placeholders})"
+
+    for row in df.itertuples(index=False, name=None):
+        cursor.execute(insert_sql, row)
+
+    cursor.close()
+    conn.close()
+    print(f"Uploaded {len(df)} rows to `{table_name}`.")
+def infer_mysql_type(dtype):
+    if pd.api.types.is_integer_dtype(dtype):
+        return "INT"
+    elif pd.api.types.is_float_dtype(dtype):
+        return "FLOAT"
+    elif pd.api.types.is_bool_dtype(dtype):
+        return "BOOLEAN"
+    elif pd.api.types.is_datetime64_any_dtype(dtype):
+        return "DATETIME"
+    else:
+        return "VARCHAR(255)"  # default fallback 
 def generate_query(job_descr: str, prompt_act: str):
     text_parts = []
     gpt_model = ChatOpenAI(model="gpt-3.5-turbo")
