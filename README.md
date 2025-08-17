@@ -34,12 +34,13 @@ streamlit run resume_main.py
 ⚠️ Note: The application requires credentials to run. Without them, it will not start successfully. Ensure you have the appropriate credentials configured before running.
 
 ## Project Structure
-
+<pre>
 ├── resume_main.py<br>
 ├── util/<br>
 │   ├── requirements.txt<br>
     └── ...<br>
 └── README.md<br>
+</pre>
 
 ## Troubleshooting
 
