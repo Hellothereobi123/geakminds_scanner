@@ -36,10 +36,10 @@ streamlit run resume_main.py
 ## Project Structure
 
 .
-├── resume_main.py          # Entry point for the Streamlit app
-├── util/
-│   └── requirements.txt    # Dependency list
-└── README.md               # Documentation
+├── resume_main.py          # Entry point for the Streamlit app<br>
+├── util/<br>
+│   └── requirements.txt    # Dependency list<br>
+└── README.md               # Documentation<br>
 
 ## Troubleshooting
 
