@@ -37,7 +37,8 @@ streamlit run resume_main.py
 
 ├── resume_main.py<br>
 ├── util/<br>
-│   └── requirements.txt<br>
+│   ├── requirements.txt<br>
+    └── ...
 └── README.md<br>
 
 ## Troubleshooting
