@@ -182,7 +182,7 @@ def generate_query(job_descr: str, prompt_act: str):
         model=gpt_model,
         tools=[make_query, transfer_to_hotel_assistant],
         prompt=
-    f"Create a sql query that satisfies the following conditions: {prompt_act}, and print the query itself, not the data. Return the query without any additional text.",
+    f"Create a sql query and use joins if necessary to join tables together that satisfies the following conditions: {prompt_act}, and print the query itself, not the data. Return the query without any additional text.",
         name="query_maker"
     )
     query_exec = create_react_agent(

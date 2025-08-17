@@ -23,8 +23,6 @@ from azure.search.documents.indexes.models import (
     TextWeights,
     SearchIndex
 )
-# Download the blob to a local file
-# Add 'DOWNLOAD' before the .txt extension so you can see both files in the data directory
 load_dotenv("C:/Users/tharu/OneDrive/Documents/geakminds_scanner/util/.env")
 account_url = os.environ.get("ACCOUNT_URL")
 search_endpoint = os.environ.get("SEARCH_ENDPOINT")
@@ -38,7 +36,7 @@ endpoint = os.environ.get("OPENAI_DOC_ENDPOINT")
 required = []
 
 helpful = []
-
+#new_list = required.append("bubble")
 
 search_credential = AzureKeyCredential(search_api_key)
 search_client = SearchClient(endpoint=search_endpoint, index_name=index_name, credential=search_credential)
@@ -61,7 +59,6 @@ scoring_profile = ScoringProfile(
         "res1": 3
     })
 )
-
 # Build the index
 index = SearchIndex(
     name=index_name,
@@ -148,7 +145,7 @@ if new_button:
     st.session_state.final_text = generate_query("", st.session_state.query_text).replace("```", "").replace("sql", "")
     returned_data = execute_query(st.session_state.final_text, rowopp)
     if(not hasattr(returned_data, '__iter__')):
-        tab3.markdown("Query executed successfully, returned "+str(returned_data))
+        tab3.markdown("Query executed successfully, returned "+":blue["+str(returned_data)+"]")
     else:
         tab3.dataframe(returned_data)
     print(st.session_state.final_text)
@@ -251,7 +248,6 @@ if upload:
         with st.spinner("Analyzing..."):
             poller = doc_client.begin_analyze_document("prebuilt-document", document=file_stream)
             result = poller.result()
-            #tab2.markdown(result)
 if reload:
     count = 0
     st.session_state.file_names = []
@@ -270,8 +266,6 @@ if reload:
             st.session_state.download_buttons.append(file_stream)
             poller = doc_client.begin_analyze_document("prebuilt-document", document=file_stream)
             result = poller.result()
-            #resume_text.append(file_stream)
-            #print(str(file_stream))
             # Display the result
             text = ""
             # Print extracted text
@@ -305,13 +299,11 @@ if reload:
     # === 3. Run the search query using scoring profile ===
     st.session_state.results = list(search_client.search(
         query_type="simple",
-        search_text = st.session_state.keywords,#'(skills:("python"^5 OR senior^5 OR"numpy" OR "scipy" OR "pandas" OR "dask" OR "spacy" OR "nltk" OR "scikit-learn" OR "pytorch" OR "django" OR "flask" OR "pyramid" OR "sql" OR "nosql") AND experience:("machine learning"^3 OR "data pipelines" OR "code reviews" OR "cloud platforms" OR "aws" OR "azure" OR "google cloud" OR "open-source")) AND education:("computer science" OR "software engineering") AND softskills:("collaboration" OR "problem-solving" OR "communication")',
+        search_text = st.session_state.keywords,
         scoring_profile="pythonScoring",
         select="id",
         include_total_count=True))
     
-
-    #print(payload)
 
 
     print("Total Documents Matching Query:", len(st.session_state.results))
